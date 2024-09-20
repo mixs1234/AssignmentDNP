@@ -17,22 +17,19 @@ public class CreateUserView(IUserRepository userRepository) : IConsoleView
         {
             Console.WriteLine("Please enter new username");
             var username = Console.ReadLine();
-            foreach (var userInRepository in _userRepository.GetMany())
-            {
-                Console.WriteLine(userInRepository.Name);
-                if (!userInRepository.Name.Equals(username))
-                {
-                    continue;
-                }
-                isUserNameValid = true;
+            
+            var usernameExists = _userRepository.GetMany().Any(userInRepository => userInRepository.Name.Equals(username));
 
-                user.Name = username;
+            if (usernameExists)
+            {
+                Console.WriteLine("Username already exists. Please try again.");
+                continue; 
             }
 
-            if (_userRepository.GetMany().Any()) continue;
             isUserNameValid = true;
-            user.Name = username;
+            if (username != null) user.Name = username;
         }
+
 
         var isPasswordValid = false;
         while (!isPasswordValid)

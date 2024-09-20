@@ -2,14 +2,16 @@
 
 namespace CLI.UI.ManagePosts;
 
-public class ListPostsView(IPostRepository postRepository) : IConsoleView
+public class ListPostsView(IPostRepository postRepository, ICommentRepository commentRepository) : IConsoleView
 {
     private readonly IPostRepository _postRepository = postRepository;
+    private readonly ICommentRepository _commentRepository = commentRepository;
 
     private async Task ListSingle(int id)
     {
         var post = await _postRepository.GetSingleAsync(id);
-       
+        var comments = _commentRepository.GetMany().Where(x => x.PostId == id);
+        
         if (post == null)
         {
             Console.WriteLine("Post not found");
@@ -17,6 +19,11 @@ public class ListPostsView(IPostRepository postRepository) : IConsoleView
         }
         
         Console.WriteLine($"Id: {post.Id}, Title: {post.Title}, Body: {post.Body}, UserId: {post.UserId}");
+        Console.WriteLine("Comments:");
+        foreach (var comment in comments)
+        {
+            Console.WriteLine($"Id: {comment.Id}, Body: {comment.Body}, PostId: {comment.PostId}, UserId: {comment.UserId}");
+        }
         
     }
     
