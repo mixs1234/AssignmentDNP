@@ -1,0 +1,39 @@
+﻿@page "/user"
+@using ApiContracts
+@using BlazorApp.Services.Users
+
+@inject IUserService UserService;
+
+<h3>Add New User</h3>
+<div class="form-group">
+    <label for="userName">User Name</label>
+    <input id="userName" @bind="_userName" class="form-control" placeholder="Enter user name"/>
+    <label for="password">Password</label>
+    <input id="password" @bind="_password" class="form-control" placeholder="Enter password"/>
+</div>
+<button class="btn btn-primary mt-2" @onclick="AddUser">Add User</button>
+
+@if (_successMessage != null)
+{
+    <p class="alert alert-success mt-3">@_successMessage</p>
+}
+
+@code {
+    private string _userName = string.Empty;
+    private string _password = string.Empty;
+    private string? _successMessage;
+
+    private void AddUser()
+    {
+        if (string.IsNullOrWhiteSpace(_userName)) return;
+        var user = new CreateUserDTO()
+        {
+            Username = _userName,
+            Password = _password
+        };
+        UserService.AddUserAsync(user);
+        _successMessage = $"User '{_userName}' added successfully!";
+        _userName = string.Empty;
+    }
+
+}

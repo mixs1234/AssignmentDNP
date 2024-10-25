@@ -56,7 +56,12 @@ public class UserFileRepository : IUserRepository
         
         usersSaved.Remove(existingUser);
         
-        usersSaved.Add(user);
+        usersSaved.Add(new User
+        {
+            Id = user.Id,
+            Name = existingUser.Name,
+            Password = user.Password
+        });
         
         await SaveUsers(usersSaved);
     }

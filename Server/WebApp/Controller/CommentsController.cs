@@ -7,21 +7,16 @@ namespace WebApp.Controller;
 
 [ApiController]
 [Route("api/Posts/{postId:int}/[controller]")]
-public class CommentsController : ControllerBase
+public class CommentsController(ICommentRepository commentRepository, IUserRepository userRepository)
+    : ControllerBase
 {
-    private readonly ICommentRepository _commentRepository;
-    private readonly IUserRepository _userRepository;
-    
-    public CommentsController(ICommentRepository commentRepository, IUserRepository userRepository)
-    {
-        _commentRepository = commentRepository;
-        _userRepository = userRepository;
-    }
-    
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CommentDto>>> GetMany([FromQuery] int? userId = null, [FromQuery] string? userName = null, [FromQuery] int? postId = null)
+    public async Task<ActionResult<IEnumerable<CommentDTO>>> GetMany(
+        [FromQuery] int? userId = null,
+        [FromQuery] string? userName = null,
+        [FromQuery] int? postId = null)
     {
-        var comments = _commentRepository.GetMany();
+        var comments = commentRepository.GetMany();
 
         if (userId.HasValue)
         {
@@ -30,7 +25,7 @@ public class CommentsController : ControllerBase
 
         if (!string.IsNullOrEmpty(userName))
         {
-            var users = _userRepository.GetMany().Where(user => user.Name.Contains(userName, StringComparison.OrdinalIgnoreCase)).Select(user => user.Id);
+            var users = userRepository.GetMany().Where(user => user.Name.Contains(userName, StringComparison.OrdinalIgnoreCase)).Select(user => user.Id);
             comments = comments.Where(comment => users.Contains(comment.UserId));
         }
 
@@ -39,7 +34,7 @@ public class CommentsController : ControllerBase
             comments = comments.Where(comment => comment.PostId == postId.Value);
         }
 
-        var commentDtos = comments.Select(comment => new CommentDto
+        var commentDtos = comments.Select(comment => new CommentDTO
         {
             Id = comment.Id,
             Body = comment.Body,
@@ -51,10 +46,10 @@ public class CommentsController : ControllerBase
     }
     
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<CommentDto>> GetSingle(int id)
+    public async Task<ActionResult<CommentDTO>> GetSingle(int id)
     {
-        var comment = await _commentRepository.GetSingleAsync(id);
-        var commentDto = new CommentDto
+        var comment = await commentRepository.GetSingleAsync(id);
+        var commentDto = new CommentDTO
         {
             Id = comment.Id,
             Body = comment.Body,
@@ -66,17 +61,17 @@ public class CommentsController : ControllerBase
     }
     
     [HttpPost]
-    public async Task<ActionResult<CommentDto>> Add(CommentDto commentDto)
+    public async Task<ActionResult<CommentDTO>> Add(CreateCommentDTO createCommentDto, int postId)
     {
         var comment = new Comment
         {
-            Body = commentDto.Body,
-            PostId = commentDto.PostId,
-            UserId = commentDto.UserId
+            Body = createCommentDto.Body,
+            PostId = postId,
+            UserId = createCommentDto.UserId
         };
         
-        var createdComment = await _commentRepository.AddAsync(comment);
-        var createdCommentDto = new CommentDto
+        var createdComment = await commentRepository.AddAsync(comment);
+        var createdCommentDto = new CommentDTO
         {
             Id = createdComment.Id,
             Body = createdComment.Body,
@@ -88,25 +83,23 @@ public class CommentsController : ControllerBase
     }
     
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<CommentDto>> Update(int id, CommentDto commentDto)
+    public async Task<ActionResult<CommentDTO>> Update(int id, UpdateCommentDTO updateCommentDto)
     {
         var comment = new Comment
         {
             Id = id,
-            Body = commentDto.Body,
-            PostId = commentDto.PostId,
-            UserId = commentDto.UserId
+            Body = updateCommentDto.Body,
         };
         
-        await _commentRepository.UpdateAsync(comment);
+        await commentRepository.UpdateAsync(comment);
         
-        return Ok(commentDto);
+        return Ok();
     }
     
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _commentRepository.DeleteAsync(id);
+        await commentRepository.DeleteAsync(id);
         
         return NoContent();
     }

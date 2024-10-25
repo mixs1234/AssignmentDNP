@@ -7,30 +7,22 @@ namespace WebApp.Controller;
 
 [ApiController]
 [Route("api/[controller]")]
-public class UsersController : ControllerBase
+public class UsersController(IUserRepository userRepository) : ControllerBase
 {
-    
-    private readonly IUserRepository _userRepository;
-    
-    public UsersController(IUserRepository userRepository)
-    {
-        _userRepository = userRepository;
-    }
-    
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetMany([FromQuery] string? nameContains = null)
+    public async Task<ActionResult<IEnumerable<UserDTO>>> GetMany([FromQuery] string? nameContains = null)
     {
-        var users = _userRepository.GetMany();
+        var users = userRepository.GetMany();
 
         if (!string.IsNullOrEmpty(nameContains))
         {
             users = users.Where(user => user.Name.Contains(nameContains, StringComparison.OrdinalIgnoreCase));
         }
 
-        var userDtos = users.Select(user => new UserDto
+        var userDtos = users.Select(user => new UserDTO()
         {
             Id = user.Id,
-            Name = user.Name,
+            Username = user.Name,
             Password = user.Password
         }).ToList();
 
@@ -38,13 +30,13 @@ public class UsersController : ControllerBase
     }
     
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<UserDto>> GetSingle(int id)
+    public async Task<ActionResult<UserDTO>> GetSingle(int id)
     {
-        var user = await _userRepository.GetSingleAsync(id);
-        var userDto = new UserDto
+        var user = await userRepository.GetSingleAsync(id);
+        var userDto = new UserDTO
         {
             Id = user.Id,
-            Name = user.Name,
+            Username = user.Name,
             Password = user.Password,
         };
         
@@ -52,19 +44,19 @@ public class UsersController : ControllerBase
     }
     
     [HttpPost]
-    public async Task<ActionResult<UserDto>> Add(UserDto userDto)
+    public async Task<ActionResult<UserDTO>> Add(CreateUserDTO createUserDto)
     {
         var user = new User
         {
-            Name = userDto.Name,
-            Password = userDto.Password,
+            Name = createUserDto.Username,
+            Password = createUserDto.Password,
         };
         
-        var createdUser = await _userRepository.AddAsync(user);
-        var createdUserDto = new UserDto
+        var createdUser = await userRepository.AddAsync(user);
+        var createdUserDto = new UserDTO
         {
             Id = createdUser.Id,
-            Name = createdUser.Name,
+            Username = createdUser.Name,
             Password = createdUser.Password,
         };
         
@@ -72,24 +64,23 @@ public class UsersController : ControllerBase
     }
     
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<UserDto>> Update(int id, UserDto userDto)
+    public async Task<ActionResult<UserDTO>> Update(int id, UpdateUserDTO updateUserDto)
     {
         var user = new User
         {
             Id = id,
-            Name = userDto.Name,
-            Password = userDto.Password,
+            Password = updateUserDto.Password,
         };
         
-        await _userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user);
         
-        return Ok(userDto);
+        return Ok(user);
     }
     
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _userRepository.DeleteAsync(id);
+        await userRepository.DeleteAsync(id);
         
         return NoContent();
     }

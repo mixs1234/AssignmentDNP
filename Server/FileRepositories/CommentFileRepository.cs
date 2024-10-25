@@ -57,7 +57,13 @@ public class CommentFileRepository : ICommentRepository
         
         commentsSaved.Remove(existingComment);
         
-        commentsSaved.Add(comment);
+        commentsSaved.Add(new Comment
+        {
+            Id = existingComment.Id,
+            Body = comment.Body,
+            PostId = existingComment.PostId,
+            UserId = existingComment.PostId
+        });
         
         await SaveComments(commentsSaved);
     }

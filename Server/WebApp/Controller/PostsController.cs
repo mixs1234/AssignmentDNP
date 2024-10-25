@@ -7,23 +7,19 @@ namespace WebApp.Controller;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PostsController : ControllerBase
+public class PostsController(
+    IPostRepository postRepository,
+    ICommentRepository commentRepository,
+    IUserRepository userRepository)
+    : ControllerBase
 {
-    private readonly IPostRepository _postRepository;
-    private readonly ICommentRepository _commentRepository;
-    private readonly IUserRepository _userRepository;
-
-    public PostsController(IPostRepository postRepository, ICommentRepository commentRepository, IUserRepository userRepository)
-    {
-        _postRepository = postRepository;
-        _commentRepository = commentRepository;
-        _userRepository = userRepository;
-    }
-
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PostDto>>> GetMany([FromQuery] string? titleContains = null, [FromQuery] int? userId = null, [FromQuery] string? userName = null)
+    public async Task<ActionResult<IEnumerable<PostDTO>>> GetMany(
+        [FromQuery] string? titleContains = null, 
+        [FromQuery] int? userId = null, 
+        [FromQuery] string? userName = null)
     {
-        var posts = _postRepository.GetMany();
+        var posts = postRepository.GetMany();
 
         if (!string.IsNullOrEmpty(titleContains))
         {
@@ -37,19 +33,19 @@ public class PostsController : ControllerBase
 
         if (!string.IsNullOrEmpty(userName))
         {
-            var users = _userRepository.GetMany().Where(user => user.Name.Contains(userName, StringComparison.OrdinalIgnoreCase)).Select(user => user.Id);
+            var users = userRepository.GetMany().Where(user => user.Name.Contains(userName, StringComparison.OrdinalIgnoreCase)).Select(user => user.Id);
             posts = posts.Where(post => users.Contains(post.UserId));
         }
 
-        var postDtos = posts.Select(post => new PostDto
+        var postDtos = posts.Select(post => new PostDTO
         {
             Id = post.Id,
             Title = post.Title,
             Body = post.Body,
             UserId = post.UserId,
-            Comments = _commentRepository.GetMany()
+            Comments = commentRepository.GetMany()
                 .Where(comment => comment.PostId == post.Id)
-                .Select(comment => new CommentDto
+                .Select(comment => new CommentDTO
                 {
                     Id = comment.Id,
                     Body = comment.Body,
@@ -62,32 +58,34 @@ public class PostsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<PostDto>> GetSingle(int id, bool includeComments = false)
+    public async Task<ActionResult<PostDTO>> GetSingle(
+        [FromQuery] int id,
+        [FromQuery] bool includeComments = false)
     {
-        var post = await _postRepository.GetSingleAsync(id);
-        PostDto postDto;
+        var post = await postRepository.GetSingleAsync(id);
+        PostDTO postDto;
         if (!includeComments)
         {
-            postDto = new PostDto
+            postDto = new PostDTO
             {
                 Id = post.Id,
                 Title = post.Title,
                 Body = post.Body,
                 UserId = post.UserId,
-                Comments = (List<CommentDto>) []
+                Comments = (List<CommentDTO>) []
             };
         }
         else
         {
-            postDto = new PostDto
+            postDto = new PostDTO
             {
                 Id = post.Id,
                 Title = post.Title,
                 Body = post.Body,
                 UserId = post.UserId,
-                Comments = _commentRepository.GetMany()
+                Comments = commentRepository.GetMany()
                     .Where(comment => comment.PostId == post.Id)
-                    .Select(comment => new CommentDto
+                    .Select(comment => new CommentDTO
                     {
                         Id = comment.Id,
                         Body = comment.Body,
@@ -101,40 +99,38 @@ public class PostsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<PostDto>> Create(PostDto postDto)
+    public async Task<ActionResult<PostDTO>> Create(CreatePostDTO createPostDto)
     {
         var post = new Post
         {
-            Title = postDto.Title,
-            Body = postDto.Body,
-            UserId = postDto.UserId
+            Title = createPostDto.Title,
+            Body = createPostDto.Body,
+            UserId = createPostDto.UserId
         };
 
-        var createdPost = await _postRepository.AddAsync(post);
-        postDto.Id = createdPost.Id;
+        var createdPost = await postRepository.AddAsync(post);
 
-        return CreatedAtAction(nameof(GetSingle), new { id = postDto.Id }, postDto);
+        return Ok(createdPost);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, PostDto postDto)
+    public async Task<IActionResult> Update(int id, UpdatePostDTO updatePostDto)
     {
         var post = new Post
         {
             Id = id,
-            Title = postDto.Title,
-            Body = postDto.Body,
-            UserId = postDto.UserId
+            Title = updatePostDto.Title,
+            Body = updatePostDto.Body,
         };
 
-        await _postRepository.UpdateAsync(post);
+        await postRepository.UpdateAsync(post);
         return NoContent();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _postRepository.DeleteAsync(id);
+        await postRepository.DeleteAsync(id);
         return NoContent();
     }
 }
