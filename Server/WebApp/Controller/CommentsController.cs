@@ -11,10 +11,9 @@ public class CommentsController(ICommentRepository commentRepository, IUserRepos
     : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CommentDTO>>> GetMany(
+    public async Task<ActionResult<IEnumerable<CommentDTO>>> GetMany(int? postId,
         [FromQuery] int? userId = null,
-        [FromQuery] string? userName = null,
-        [FromQuery] int? postId = null)
+        [FromQuery] string? userName = null)
     {
         var comments = commentRepository.GetMany();
 

@@ -74,7 +74,7 @@ public class PostsController(
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PostDTO>> GetSingle(
-        [FromQuery] int id,
+        int id,
         [FromQuery] bool includeComments = false)
     {
         var post = await postRepository.GetSingleAsync(id);

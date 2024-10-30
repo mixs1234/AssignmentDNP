@@ -20,7 +20,9 @@ else
         @foreach (var post in posts)
         {
             <div class="post-card">
-                <h2>@post.Title</h2>
+                <h2>
+                    <NavLink href="@($"posts/{post.Id}")">@post.Title</NavLink>
+                </h2>
                 <p>@post.Body</p>
             </div>
         }

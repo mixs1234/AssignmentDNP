@@ -5,16 +5,16 @@ namespace BlazorApp.Services.Users;
 
 public class HttpUserService : IUserService
 {
-    private readonly HttpClient client;
+    private readonly HttpClient _client;
 
     public HttpUserService(HttpClient client)
     {
-        this.client = client;
+        this._client = client;
     }
 
     public async Task<UserDTO> AddUserAsync(CreateUserDTO request)
     {
-        var httpResponse = await client.PostAsJsonAsync("/api/Users", request);
+        var httpResponse = await _client.PostAsJsonAsync("/api/Users", request);
         var response = await httpResponse.Content.ReadAsStringAsync();
         if (!httpResponse.IsSuccessStatusCode)
         {

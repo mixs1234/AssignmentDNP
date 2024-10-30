@@ -1,5 +1,77 @@
-﻿<h3>PostView</h3>
+﻿@page "/posts/{PostId:int}"
+@using ApiContracts
+@using BlazorApp.Services.Comments
+@using BlazorApp.Services.Posts
+@inject IPostService PostService
+@inject ICommentService CommentService
+
+<h1>@post?.Title</h1>
+<p>@post?.Body</p>
+
+@if (comments == null)
+{
+    <p>Loading comments...</p>
+}
+else if (!comments.Any())
+{
+    <p>No comments yet.</p>
+}
+else
+{
+    <h2>Comments</h2>
+    @foreach (var comment in comments)
+    {
+        <div class="comment">
+            <p>@comment.Body</p>
+            <p><em>By: @comment.UserId</em></p>
+        </div>
+    }
+}
+
+<h2>Add a Comment</h2>
+<EditForm Model="newComment" OnValidSubmit="HandleValidSubmit">
+    <InputTextArea @bind-Value="newComment.Body" Placeholder="Write your comment here..." />
+    <ValidationMessage For="() => newComment.Body" />
+    <label for="userId">Password</label>
+    <input id="userId" @bind="newComment.UserId" class="form-control" placeholder="Enter user id"/>
+    <button type="submit">Submit</button>
+</EditForm>
 
 @code {
-    
+    [Parameter]
+    public int PostId { get; set; }
+
+    private PostDTO? post;
+    private List<CommentDTO>? comments;
+    private CreateCommentDTO newComment = new CreateCommentDTO
+    {
+        Body = "",
+        UserId = 0
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            post = await PostService.GetPostAsync(PostId);
+
+            comments = post.Comments;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching post details: {ex.Message}");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await CommentService.AddCommentAsync(newComment, PostId);
+        post = await PostService.GetPostAsync(PostId);
+        comments = post.Comments;
+        newComment = new CreateCommentDTO
+        {
+            Body = "",
+            UserId = 0
+        };
+    }
 }
