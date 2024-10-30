@@ -1,4 +1,5 @@
 using BlazorApp.Components;
+using BlazorApp.Services.Posts;
 using BlazorApp.Services.Users;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.Services.AddScoped(sp => new HttpClient
     }
 );
 builder.Services.AddScoped<IUserService, HttpUserService>();
+builder.Services.AddScoped<IPostService, HttpPostService>();
 
 var app = builder.Build();
 

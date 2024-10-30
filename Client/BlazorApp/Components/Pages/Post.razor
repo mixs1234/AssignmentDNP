@@ -1,0 +1,45 @@
+﻿@page "/post"
+@using ApiContracts
+@using BlazorApp.Services.Posts
+
+@inject IPostService PostService;
+
+<h3>Add New Post</h3>
+<div class="form-group">
+    <label for="title">User Name</label>
+    <input id="title" @bind="_title" class="form-control" placeholder="Enter post title"/>
+    <label for="body">Password</label>
+    <input id="body" @bind="_body" class="form-control" placeholder="Enter post body"/>
+    <label for="userId">Password</label>
+    <input id="userId" @bind="_userId" class="form-control" placeholder="Enter user id"/>
+</div>
+<button class="btn btn-primary mt-2" @onclick="AddPost">Add Post</button>
+
+@if (_successMessage != null)
+{
+    <p class="alert alert-success mt-3">@_successMessage</p>
+}
+
+@code {
+    private string _title = string.Empty;
+    private string _body = string.Empty;
+    private int _userId = 1;
+    private string? _successMessage;
+    
+    private void AddPost()
+    {
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrEmpty(_body)) return;
+        var post = new CreatePostDTO()
+        {
+            Title = _title,
+            Body = _body,
+            UserId = _userId
+        };
+        PostService.AddPostAsync(post);
+        _successMessage = $"Post added successfully";
+        _title = string.Empty;
+        _body = string.Empty;
+        _userId = 1;
+    }
+
+}

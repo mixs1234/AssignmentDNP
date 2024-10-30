@@ -17,7 +17,8 @@ public class PostsController(
     public async Task<ActionResult<IEnumerable<PostDTO>>> GetMany(
         [FromQuery] string? titleContains = null, 
         [FromQuery] int? userId = null, 
-        [FromQuery] string? userName = null)
+        [FromQuery] string? userName = null,
+        [FromQuery] bool includeComments = false)
     {
         var posts = postRepository.GetMany();
 
@@ -36,23 +37,37 @@ public class PostsController(
             var users = userRepository.GetMany().Where(user => user.Name.Contains(userName, StringComparison.OrdinalIgnoreCase)).Select(user => user.Id);
             posts = posts.Where(post => users.Contains(post.UserId));
         }
-
-        var postDtos = posts.Select(post => new PostDTO
+        List<PostDTO> postDtos;
+        if (includeComments)
         {
-            Id = post.Id,
-            Title = post.Title,
-            Body = post.Body,
-            UserId = post.UserId,
-            Comments = commentRepository.GetMany()
-                .Where(comment => comment.PostId == post.Id)
-                .Select(comment => new CommentDTO
-                {
-                    Id = comment.Id,
-                    Body = comment.Body,
-                    PostId = comment.PostId,
-                    UserId = comment.UserId
-                }).ToList()
-        }).ToList();
+            postDtos = posts.Select(post => new PostDTO
+            {
+                Id = post.Id,
+                Title = post.Title,
+                Body = post.Body,
+                UserId = post.UserId,
+                Comments = commentRepository.GetMany()
+                    .Where(comment => comment.PostId == post.Id)
+                    .Select(comment => new CommentDTO
+                    {
+                        Id = comment.Id,
+                        Body = comment.Body,
+                        PostId = comment.PostId,
+                        UserId = comment.UserId
+                    }).ToList()
+            }).ToList();
+        }
+        else
+        {
+            postDtos = posts.Select(post => new PostDTO
+            {
+                Id = post.Id,
+                Title = post.Title,
+                Body = post.Body,
+                UserId = post.UserId,
+                Comments = new List<CommentDTO> { }
+            }).ToList();
+        }
 
         return Ok(postDtos);
     }
