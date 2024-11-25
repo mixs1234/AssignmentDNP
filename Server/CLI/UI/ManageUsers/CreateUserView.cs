@@ -11,7 +11,7 @@ public class CreateUserView(IUserRepository userRepository) : IConsoleView
     private async Task CreateUser()
     {
         var isUserNameValid = false;
-        var user = new User();
+        var user = new User("", "");
         
         while (!isUserNameValid)
         {

@@ -37,12 +37,8 @@ public class CreateCommentView(ICommentRepository commentRepository) : IConsoleV
             return;
         }
         
-        var comment = new Comment
-        {
-            Body = content,
-            UserId = userIdInt,
-            PostId = postIdInt
-        };
+        
+        var comment = new Comment(content, userIdInt, postIdInt);
 
         await _commentRepository.AddAsync(comment);
         Console.WriteLine("Comment created successfully");

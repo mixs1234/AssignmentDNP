@@ -62,12 +62,7 @@ public class CommentsController(ICommentRepository commentRepository, IUserRepos
     [HttpPost]
     public async Task<ActionResult<CommentDTO>> Add(CreateCommentDTO createCommentDto, int postId)
     {
-        var comment = new Comment
-        {
-            Body = createCommentDto.Body,
-            PostId = postId,
-            UserId = createCommentDto.UserId
-        };
+        var comment = new Comment(createCommentDto.Body, postId, createCommentDto.UserId);
         
         var createdComment = await commentRepository.AddAsync(comment);
         var createdCommentDto = new CommentDTO
@@ -84,10 +79,9 @@ public class CommentsController(ICommentRepository commentRepository, IUserRepos
     [HttpPut("{id:int}")]
     public async Task<ActionResult<CommentDTO>> Update(int id, UpdateCommentDTO updateCommentDto)
     {
-        var comment = new Comment
+        var comment = new Comment(updateCommentDto.Body, updateCommentDto.PostId, updateCommentDto.UserId)
         {
-            Id = id,
-            Body = updateCommentDto.Body,
+            Id = id
         };
         
         await commentRepository.UpdateAsync(comment);

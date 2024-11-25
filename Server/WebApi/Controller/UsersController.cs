@@ -46,12 +46,8 @@ public class UsersController(IUserRepository userRepository) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UserDTO>> Add(CreateUserDTO createUserDto)
     {
-        var user = new User
-        {
-            Name = createUserDto.Username,
-            Password = createUserDto.Password,
-        };
-        
+        var user = new User(createUserDto.Username, createUserDto.Password);
+            
         var createdUser = await userRepository.AddAsync(user);
         var createdUserDto = new UserDTO
         {
@@ -64,12 +60,12 @@ public class UsersController(IUserRepository userRepository) : ControllerBase
     }
     
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<UserDTO>> Update(int id, UpdateUserDTO updateUserDto)
+    public async Task<ActionResult<UserDTO>> Update([FromRoute] int id,
+        UpdateUserDTO updateUserDto)
     {
-        var user = new User
+        var user = new User(updateUserDto.Username, updateUserDto.Password)
         {
-            Id = id,
-            Password = updateUserDto.Password,
+            Id = id
         };
         
         await userRepository.UpdateAsync(user);

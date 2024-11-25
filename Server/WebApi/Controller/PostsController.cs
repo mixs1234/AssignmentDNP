@@ -1,6 +1,7 @@
 ﻿using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebApp.Controller;
@@ -8,136 +9,128 @@ namespace WebApp.Controller;
 [ApiController]
 [Route("api/[controller]")]
 public class PostsController(
-    IPostRepository postRepository,
-    ICommentRepository commentRepository,
-    IUserRepository userRepository)
+    IPostRepository postRepository)
     : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PostDTO>>> GetMany(
-        [FromQuery] string? titleContains = null, 
-        [FromQuery] int? userId = null, 
+        [FromQuery] string? titleContains = null,
+        [FromQuery] int? userId = null,
         [FromQuery] string? userName = null,
         [FromQuery] bool includeComments = false)
     {
-        var posts = postRepository.GetMany();
+        var queryForPosts = postRepository.GetMany()
+            .AsQueryable();
 
         if (!string.IsNullOrEmpty(titleContains))
         {
-            posts = posts.Where(post => post.Title.Contains(titleContains, StringComparison.OrdinalIgnoreCase));
+            queryForPosts = queryForPosts.Where(post => post.Title.Contains(titleContains, StringComparison.OrdinalIgnoreCase));
         }
 
         if (userId.HasValue)
         {
-            posts = posts.Where(post => post.UserId == userId.Value);
+            queryForPosts = queryForPosts.Where(post => post.UserId == userId.Value);
         }
 
         if (!string.IsNullOrEmpty(userName))
         {
-            var users = userRepository.GetMany().Where(user => user.Name.Contains(userName, StringComparison.OrdinalIgnoreCase)).Select(user => user.Id);
-            posts = posts.Where(post => users.Contains(post.UserId));
+            queryForPosts = queryForPosts.Where(post => post.User.Name.Contains(userName, StringComparison.OrdinalIgnoreCase));
         }
-        List<PostDTO> postDtos;
+
         if (includeComments)
         {
-            postDtos = posts.Select(post => new PostDTO
+            queryForPosts = queryForPosts.Include(post => post.Comments);
+        }
+
+        var postDtos = await queryForPosts.Select(post => new PostDTO()
             {
                 Id = post.Id,
                 Title = post.Title,
                 Body = post.Body,
                 UserId = post.UserId,
-                Comments = commentRepository.GetMany()
-                    .Where(comment => comment.PostId == post.Id)
-                    .Select(comment => new CommentDTO
+                Comments = includeComments
+                    ? new List<CommentDTO>(post.Comments.Select(comment => new CommentDTO()
                     {
                         Id = comment.Id,
                         Body = comment.Body,
                         PostId = comment.PostId,
                         UserId = comment.UserId
-                    }).ToList()
-            }).ToList();
-        }
-        else
-        {
-            postDtos = posts.Select(post => new PostDTO
-            {
-                Id = post.Id,
-                Title = post.Title,
-                Body = post.Body,
-                UserId = post.UserId,
-                Comments = new List<CommentDTO> { }
-            }).ToList();
-        }
+                    })).ToList()
+                    : new()
+            })
+            .ToListAsync();
 
         return Ok(postDtos);
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PostDTO>> GetSingle(
-        int id,
-        [FromQuery] bool includeComments = false)
+        [FromRoute] int id,
+        [FromQuery] bool includeComments = false,
+        [FromQuery] bool includeUser = false)
     {
-        var post = await postRepository.GetSingleAsync(id);
-        PostDTO postDto;
-        if (!includeComments)
+        var queryForPosts = postRepository.GetMany()
+            .Where(post => post.Id == id)
+            .AsQueryable();
+
+        if (includeUser)
         {
-            postDto = new PostDTO
-            {
-                Id = post.Id,
-                Title = post.Title,
-                Body = post.Body,
-                UserId = post.UserId,
-                Comments = (List<CommentDTO>) []
-            };
+            queryForPosts = queryForPosts.Include(post => post.User);
         }
-        else
+
+        if (includeComments)
         {
-            postDto = new PostDTO
+            queryForPosts = queryForPosts.Include(post => post.Comments);
+        }
+
+        PostDTO? postDto = await queryForPosts.Select(post => new PostDTO()
             {
                 Id = post.Id,
                 Title = post.Title,
                 Body = post.Body,
                 UserId = post.UserId,
-                Comments = commentRepository.GetMany()
-                    .Where(comment => comment.PostId == post.Id)
-                    .Select(comment => new CommentDTO
+                User = includeUser
+                    ? new UserDTO()
+                    {
+                        Id = post.User!.Id,
+                        Username = post.User.Name,
+                        Password = post.User.Password
+                    }
+                    : null,
+                Comments = includeComments
+                    ? new List<CommentDTO>(post.Comments.Select(comment => new CommentDTO()
                     {
                         Id = comment.Id,
                         Body = comment.Body,
                         PostId = comment.PostId,
                         UserId = comment.UserId
-                    }).ToList()
-            };
-        }
-
-        return Ok(postDto);
+                    })).ToList()
+                    : new()
+            })
+            .FirstOrDefaultAsync();
+        
+        return postDto == null ? NotFound() : Ok(postDto);
     }
 
     [HttpPost]
     public async Task<ActionResult<PostDTO>> Create(CreatePostDTO createPostDto)
     {
-        var post = new Post
-        {
-            Title = createPostDto.Title,
-            Body = createPostDto.Body,
-            UserId = createPostDto.UserId
-        };
-
+        var post = new Post(createPostDto.Title, createPostDto.Body, createPostDto.UserId);
+        
         var createdPost = await postRepository.AddAsync(post);
 
         return Ok(createdPost);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, UpdatePostDTO updatePostDto)
+    public async Task<IActionResult> Update([FromRoute] int id,
+        UpdatePostDTO updatePostDto)
     {
-        var post = new Post
+        var post = new Post(updatePostDto.Title, updatePostDto.Body, updatePostDto.UserId)
         {
-            Id = id,
-            Title = updatePostDto.Title,
-            Body = updatePostDto.Body,
+            Id = id
         };
-
+        
         await postRepository.UpdateAsync(post);
         return NoContent();
     }

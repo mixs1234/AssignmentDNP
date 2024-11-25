@@ -37,12 +37,7 @@ public class CreatePostView(IPostRepository postRepository) : IConsoleView
             return;
         }
         
-        var post = new Post
-        {
-            Title = title,
-            Body = content,
-            UserId = userIdInt
-        };
+        var post = new Post(title, content, userIdInt);
 
         await _postRepository.AddAsync(post);
         Console.WriteLine("Post created successfully");
